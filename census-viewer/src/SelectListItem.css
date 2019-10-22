@@ -1,0 +1,9 @@
+.SelectListItem {
+  padding: 5px;
+  background-color: #eee;
+  margin-bottom: 5px;
+}
+
+.SelectListItem:hover {
+  background-color: green;
+}

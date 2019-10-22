@@ -1,0 +1,26 @@
+.MemberDetail {
+}
+
+.MemberDetail-content {
+  border: solid #000 1px;
+}
+
+.MemberDetail-content .heading,
+.MemberDetail-content .value {
+  line-height: 30px;
+  margin: 2.5px 0;
+}
+
+.MemberDetail-content .heading {
+  background-color: #eee;
+  text-align: right;
+}
+
+.MemberDetail-content .value {
+  font-family: monospace;
+}
+
+.MemberDetail-content h3 {
+  font-size: 16pt;
+  margin-top: 0.5em;
+}
