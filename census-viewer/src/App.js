@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Col, Row } from 'react-bootstrap';
 import SelectList from './SelectList';
 import MemberDetail from './MemberDetail';
@@ -7,41 +7,41 @@ import logo from './biome-logo.png';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.pollSuccess = this.pollSuccess.bind(this);
-    this.pollFailure = this.pollFailure.bind(this);
-    this.setServiceGroup = this.setServiceGroup.bind(this);
-    this.setService = this.setService.bind(this);
-    this.setFullServiceGroup = this.setFullServiceGroup.bind(this);
-    this.setMember = this.setMember.bind(this);
+export default function App(props) {
+  const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
+  const [lastPoll, setLastPoll] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [serviceGroups, setServiceGroups] = useState([]);
+  const [services, setServices] = useState({});
+  const [members, setMembers] = useState({});
+  const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedFullServiceGroup, setSelectedFullServiceGroup] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMemberHostname, setSelectedMemberHostname] = useState(null);
+  const [selectedMemberData, setSelectedMemberData] = useState(null);
+  const [timer, setTimer] = useState(null);
+  const [interval, setInterval] = useState(3000);
 
-    this.serviceGroupsList = React.createRef();
-    this.servicesList = React.createRef();
-    this.membersList = React.createRef();
-    this.memberDetail = React.createRef();
+  const serviceGroupsList = [];
 
-    this.state = {
-      lastPoll: null,
+  useEffect(() => {
+    setTimer(setInterval(() => {
+      console.log('Fetching data');
+      fetch(endpoint)
+        .then(result => result.json())
+        .then(result => pollSuccess(result));
+    }, interval));
+    // Cleanup
+    return () => {
+      clearInterval(timer);
+    };
+  }, [endpoint]);
 
-      serviceGroups: [],
-      services: {},
-      members: {},
-
-      selectedServiceGroup: null,
-      selectedService: null,
-      selectedFullServiceGroup: null,
-      selectedMember: null,
-      selectedMemberHostname: null,
-      selectedMemberData: null,
-    }
-  }
-
-  pollSuccess(event) {
+  function pollSuccess(event) {
     console.log("Polling completed")
 
-    this.setState({lastPoll: event});
+    setLastPoll(event);
 
     // Groups
     const groups = new Set();
@@ -63,26 +63,26 @@ class App extends Component {
     }
     // Update Service Groups
     const groupsArray = Array.from(groups);
-    this.setState({serviceGroups: groupsArray});
-    this.serviceGroupsList.current.setItems(groupsArray);
+    setServiceGroups(groupsArray);
+    serviceGroupsList.current.setItems(groupsArray);
 
     // Update Services
     const servicesObject = {};
     for (var group in services) {
       servicesObject[group] = Array.from(services[group]);
     }
-    this.setState({services: servicesObject});
+    setServices(servicesObject);
 
     //console.debug(members);
-    this.setState({members: members});
+    setMembers(members);
   }
 
-  pollFailure(event) {
+  function pollFailure(event) {
     console.error("Failed to poll URI:");
     console.debug(event);
   }
 
-  setServiceGroup(name) {
+  function setServiceGroup(name) {
     console.log("Set Service Group: " + name)
     this.setState({selectedServiceGroup: name});
     this.servicesList.current.setItems(this.state.services[name]);
@@ -92,7 +92,7 @@ class App extends Component {
     this.selectedMemberData = null;
   }
 
-  setService(name) {
+  function setService(name) {
     console.log("Set Service: " + name)
     const serviceGroup = name + "." + this.state.selectedServiceGroup
     console.debug(serviceGroup)
@@ -105,11 +105,11 @@ class App extends Component {
     this.setState({selectedService: name});
   }
 
-  setFullServiceGroup(name) {
+  function setFullServiceGroup(name) {
     this.setState({selectedFullServiceGroup: name});
   }
 
-  setMember(id) {
+  function setMember(id) {
     console.log("Set Member: " + id)
     console.debug(this.state.selectedFullServiceGroup);
     console.debug(this.state.lastPoll.census_groups);
@@ -129,32 +129,15 @@ class App extends Component {
       selectedMemberData: data});
   }
 
-  render() {
     return (
       <div className="App">
         <div className="App-header">
           <img src={logo} className="App-logo" alt="logo" />
           <h2>Biome Census Viewer</h2>
           <div className="App-poller">
-            <ReactPolling
-              url="http://localhost:5555/census"
-              interval={3000}
-              retryCount={3}
-              onSuccess={this.pollSuccess}
-              onFailure={this.pollFailure}
-              method="GET"
-              render={({ startPolling, stopPolling, isPolling }) => {
-                if(isPolling) {
-                  return (
-                    <div className="polling">&nbsp;</div>
-                  );
-                } else {
-                  return (
-                    <div className="not-polling">&nbsp;</div>
-                  );
-                }
-              }}
-              />
+            {isPolling ?
+              <div className="polling">&nbsp;</div> :
+              <div className="not-polling">&nbsp;</div>}
           </div>
         </div>
         <div className="App-sidebar">
@@ -166,32 +149,29 @@ class App extends Component {
               <Col>
                 <SelectList
                   heading="Service Groups"
-                  parentCallback={this.setServiceGroup}
-                  ref={this.serviceGroupsList} />
+                  parentCallback={setServiceGroup}
+                  ref={React.forwardRef(serviceGroups)} />
               </Col>
               <Col>
                 <SelectList
                   heading="Services"
-                  parentCallback={this.setService}
-                  ref={this.servicesList} />
+                  parentCallback={setService}
+                  ref={React.forwardRef(services)} />
               </Col>
               <Col>
                 <SelectList
                   heading="Members"
-                  parentCallback={this.setMember}
-                  ref={this.membersList} />
+                  parentCallback={setMember}
+                  ref={members} />
               </Col>
             </Row>
             <Row>
               <Col>
-                <MemberDetail ref={this.memberDetail} />
+                <MemberDetail ref={React.forwardRef(selectedMember)} />
               </Col>
             </Row>
           </Container>
         </div>
       </div>
     );
-  }
 }
-
-export default App;
