@@ -13,7 +13,12 @@ export default function App(props) {
   const [data, setData] = useState(null);
   const [delay, setDelay] = useState(3000);
   const [pollError, setPollError] = useState(null);
-  const [activeServiceGroup, setActiveServiceGroup] = useState(null);
+  const [viewState, setViewState] = useState('INSPECTOR');
+  const [path, setPath] = useState({
+    serviceGroup: null,
+    service: null,
+    member: null
+  });
 
   const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
   const [services, setServices] = useState({}); // All services, grouped by service group.
@@ -71,10 +76,6 @@ export default function App(props) {
   useInterval(async () => {
     await pollEndpoint();
   }, delay);
-
-  function handleServiceGroupChange(name) {
-    setActiveServiceGroup(name);
-  }
 
   return (
     <div>
