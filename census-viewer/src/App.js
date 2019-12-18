@@ -1,177 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Col, Row } from 'react-bootstrap';
-import SelectList from './SelectList';
-import MemberDetail from './MemberDetail';
-import ReactPolling from 'react-polling';
+import useInterval from './hooks/useInterval';
+
+import { Container, Row, Col, ListGroup, ListGroupItem, Navbar, Nav, FormControl, Form, Button, Tab } from 'react-bootstrap';
+
 import logo from './biome-logo.png';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import PollError from './components/PollError';
 
 export default function App(props) {
   const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
-  const [lastPoll, setLastPoll] = useState(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const [serviceGroups, setServiceGroups] = useState([]);
-  const [services, setServices] = useState({});
+  const [data, setData] = useState(null);
+  const [delay, setDelay] = useState(3000);
+  const [pollError, setPollError] = useState(null);
+  const [activeServiceGroup, setActiveServiceGroup] = useState(null);
+
+  const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
+  const [services, setServices] = useState({}); // All services, grouped by service group.
   const [members, setMembers] = useState({});
-  const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
-  const [selectedService, setSelectedService] = useState(null);
-  const [selectedFullServiceGroup, setSelectedFullServiceGroup] = useState(null);
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [selectedMemberHostname, setSelectedMemberHostname] = useState(null);
-  const [selectedMemberData, setSelectedMemberData] = useState(null);
-  const [timer, setTimer] = useState(null);
-  const [interval, setInterval] = useState(3000);
 
-  const serviceGroupsList = [];
+  function handlePollResponse(result) {
+    setPollError(false);
+    setData(result);
 
-  useEffect(() => {
-    setTimer(setInterval(() => {
-      console.log('Fetching data');
-      fetch(endpoint)
-        .then(result => result.json())
-        .then(result => pollSuccess(result));
-    }, interval));
-    // Cleanup
-    return () => {
-      clearInterval(timer);
-    };
-  }, [endpoint]);
-
-  function pollSuccess(event) {
-    console.log("Polling completed")
-
-    setLastPoll(event);
-
-    // Groups
-    const groups = new Set();
-    const services = {};
-    const members = {};
-    for (var serviceGroup in event.census_groups) {
-      for (var member in event.census_groups[serviceGroup].population) {
-        const groupName = event.census_groups[serviceGroup].population[member].group;
-        groups.add(groupName);
-        
-        if (!services.hasOwnProperty(groupName))
-          services[groupName] = new Set();
-        services[groupName].add(event.census_groups[serviceGroup].population[member].service);
-        
-        if (!members.hasOwnProperty(serviceGroup))
-          members[serviceGroup] = {};
-        members[serviceGroup][event.census_groups[serviceGroup].population[member].member_id] = event.census_groups[serviceGroup].population[member];
-      }
+    if (result === null || !result.hasOwnProperty('census_groups')) {
+      setPollError(true);
+      return;
     }
-    // Update Service Groups
-    const groupsArray = Array.from(groups);
-    setServiceGroups(groupsArray);
-    serviceGroupsList.current.setItems(groupsArray);
 
-    // Update Services
-    const servicesObject = {};
-    for (var group in services) {
-      servicesObject[group] = Array.from(services[group]);
+    // Parse out the service members
+    let newMembers = {};
+    Object.keys(result.census_groups).map(i => {
+        newMembers[i] = result.census_groups[i].population;
+    });
+    setMembers(newMembers);
+
+    // Parse out the services
+    let newServices = {};
+    Object.keys(result.census_groups).map(i => {
+      let [srv, grp] = i.split('.');
+      if (!newServices.hasOwnProperty(grp))
+        newServices[grp] = new Set();
+      newServices[grp].add(srv);
+    });
+    // Convert the sets back to arrays.
+    for (const key of Object.keys(newServices))
+      newServices[key] = [...newServices[key]].sort();
+    setServices(newServices);
+    //console.table(newServices);
+
+    // Parse out the service groups
+    let newServiceGroups = [...new Set(Object.keys(result.census_groups).map(i => i.split('.')[1]))].sort();
+    if (JSON.stringify(newServiceGroups) !== JSON.stringify(serviceGroups)) {
+      setServiceGroups(newServiceGroups);
+      //console.table(newServiceGroups);
     }
-    setServices(servicesObject);
-
-    //console.debug(members);
-    setMembers(members);
   }
 
-  function pollFailure(event) {
-    console.error("Failed to poll URI:");
-    console.debug(event);
+  function handlePollError(err) {
+    setPollError(err);
   }
 
-  function setServiceGroup(name) {
-    console.log("Set Service Group: " + name)
-    this.setState({selectedServiceGroup: name});
-    this.servicesList.current.setItems(this.state.services[name]);
-    this.membersList.current.setItems([]);
-    this.selectedMember = null;
-    this.selectedMemberHostname = null;
-    this.selectedMemberData = null;
+  function pollEndpoint() {
+    fetch(endpoint)
+      .then(result => result.json())
+      .then(result => handlePollResponse(result))
+      .catch(err => handlePollError(err));
   }
 
-  function setService(name) {
-    console.log("Set Service: " + name)
-    const serviceGroup = name + "." + this.state.selectedServiceGroup
-    console.debug(serviceGroup)
-    this.membersList.current.setItems(this.state.members[serviceGroup]);
+  useInterval(async () => {
+    await pollEndpoint();
+  }, delay);
 
-    this.setFullServiceGroup(name + "." + this.state.selectedServiceGroup);
-    this.selectedMember = null;
-    this.selectedMemberHostname = null;
-    this.selectedMemberData = null;
-    this.setState({selectedService: name});
+  function handleServiceGroupChange(name) {
+    setActiveServiceGroup(name);
   }
 
-  function setFullServiceGroup(name) {
-    this.setState({selectedFullServiceGroup: name});
-  }
-
-  function setMember(id) {
-    console.log("Set Member: " + id)
-    console.debug(this.state.selectedFullServiceGroup);
-    console.debug(this.state.lastPoll.census_groups);
-    const serviceGroupData = this.state.lastPoll.census_groups[this.state.selectedFullServiceGroup];
-    var data = {};
-    for (var member in serviceGroupData.population) {
-      console.log("Check " + member + " === " + id);
-      if (member === id)
-        data = serviceGroupData.population[member];
-    }
-    console.debug(data);
-
-    this.memberDetail.current.setData(data);
-    this.setState({
-      selectedMember: id,
-      selectedMemberHostname: data.sys.hostname,
-      selectedMemberData: data});
-  }
-
-    return (
-      <div className="App">
-        <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h2>Biome Census Viewer</h2>
-          <div className="App-poller">
-            {isPolling ?
-              <div className="polling">&nbsp;</div> :
-              <div className="not-polling">&nbsp;</div>}
-          </div>
-        </div>
-        <div className="App-sidebar">
-          &nbsp;
-        </div>
-        <div className="App-main">
-          <Container fluid="true">
-            <Row>
-              <Col>
-                <SelectList
-                  heading="Service Groups"
-                  parentCallback={setServiceGroup}
-                  ref={React.forwardRef(serviceGroups)} />
-              </Col>
-              <Col>
-                <SelectList
-                  heading="Services"
-                  parentCallback={setService}
-                  ref={React.forwardRef(services)} />
-              </Col>
-              <Col>
-                <SelectList
-                  heading="Members"
-                  parentCallback={setMember}
-                  ref={members} />
-              </Col>
-            </Row>
-            <Row>
-              <Col>
-                <MemberDetail ref={React.forwardRef(selectedMember)} />
-              </Col>
-            </Row>
-          </Container>
-        </div>
-      </div>
-    );
+  return (
+    <div>
+    <Navbar className="justify-content-between" bg="dark" variant="dark">
+      <Navbar.Brand href="#home">
+        <img src={logo} className="App-logo" alt="logo" className="align-top" height="30" width="30"/>
+        &nbsp;&nbsp;Biome Viewer
+      </Navbar.Brand>
+      <Navbar.Toggle aria-controls="basic-navbar-nav"/>
+      <Navbar.Collapse id="basic-navbar-nav">
+        <Nav className="mr-auto">
+          <Nav.Link href="#home">Census</Nav.Link>
+        </Nav>
+      </Navbar.Collapse>
+      <Form inline>
+        <FormControl id="endpoint" type="text" defaultValue={endpoint} className="mr-sm-2"/>
+        <Button onClick={() => setEndpoint(document.getElementById('endpoint').value)}>Update</Button>
+      </Form>
+    </Navbar>
+    <Container>
+      <Row>
+        <Col>
+          <p>{data ? 'Data' : 'Attempting to load data'}</p>
+          {pollError ? <PollError err={pollError} /> : ''}
+        </Col>
+      </Row>
+    </Container>
+    <Tab.Container fluid={true} className="service-navigator">
+      <Row>
+        <Col>
+          <h4>Service Groups</h4>
+          <ListGroup>
+            {serviceGroups.map((name, i) => (
+              <ListGroup.Item
+                key={i}
+                action
+                href={`#serviceGroup-${name}`}
+                // onClick={() => {setActiveServiceGroup(name)}}
+                >
+                {name}
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+        </Col>
+        <Col>
+          <h4>Services</h4>
+          <Tab.Content>
+            {serviceGroups.map((name, i) => (
+              <Tab.Pane key={i} eventKey={`#serviceGroup-${name}`}>
+                <ListGroup>
+                  {services[name].map((srvName, j) => (
+                    <ListGroup.Item
+                      key={j}
+                      action
+                      href={`#serviceGroupMember-${srvName}.${name}`}>
+                      {srvName}
+                    </ListGroup.Item>
+                  ))}
+                </ListGroup>
+              </Tab.Pane>
+            ))}
+          </Tab.Content>
+        </Col>
+        <Col>
+          <h4>Members</h4>
+          <Tab.Content>
+            {Object.keys(members).map((srvGroupName, k) => (
+              <Tab.Pane key={k} eventKey={`#serviceGroupMember-${srvGroupName}`}>
+                <ListGroup>
+                  {srvGroupName}
+                  {/* {
+                    members[srvGroupName].map((memberName, l) => (
+                    <ListGroup.Item></ListGroup.Item>
+                  ))} */}
+                </ListGroup>
+              </Tab.Pane>
+            ))}
+          </Tab.Content>
+        </Col>
+      </Row>
+    </Tab.Container>
+    </div>
+  );
 }
