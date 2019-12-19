@@ -9,7 +9,7 @@
 }
 
 #sidebar {
-  background-color: #666;
+  background-color: #333;
   min-height: 100vh;
   width: 280px;
   transition: all 0.3s;
@@ -83,6 +83,15 @@
   height: 100px;
   border-bottom: solid #ccc 1px;
   padding-top: 15px
+}
+
+.data-pane {
+  margin-top: 20px;
+}
+
+.data-pane pre {
+  font-family: monospace;
+  font-size: 12pt;
 }
 
 

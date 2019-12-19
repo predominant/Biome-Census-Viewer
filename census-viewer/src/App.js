@@ -12,6 +12,8 @@ import Select from 'react-select';
 import ViewStateButton from './components/ViewStateButton';
 import ViewState, { useViewState } from './hooks/ViewState';
 import SideMenu from './components/SideMenu';
+import MemberInspector from './components/MemberInspector';
+import MemberData from './components/MemberData';
 //import ViewStateEnum from './ViewStateEnum';
 
 export default function App(props) {
@@ -114,8 +116,18 @@ export default function App(props) {
   function handleMemberChange(selectedOption) {
     setPath({
       ...path,
-      member: selectedOption.value,
+      member: selectedOption,
     });
+  }
+
+  function getMemberRenderer(member) {
+    const debug = viewState & ViewState.DEBUG !== 0;
+
+    if (viewState & ViewState.DATA)
+      return <MemberData member={member} debug={debug}/>;
+
+    // Default return is the inspector;
+    return <MemberInspector member={member} debug={debug}/>;
   }
 
   return (
@@ -153,42 +165,48 @@ export default function App(props) {
           </div>
         </nav>
 
-
-        <div className="data-navigator">
-          <Container fluid>
-            <Row>
-              <Col>
-                <b>Service Group</b>
-                <Select
-                  options={serviceGroups.map(i => { return { value:i, label:i };})}
-                  onChange={handleServiceGroupChange}
-                  value={path.serviceGroup}/>
-              </Col>
-              <Col>
-                {path.serviceGroup != null &&
-                  <React.Fragment>
-                    <b>Service</b>
-                    <Select
-                      options={services[path.serviceGroup.value].map(i => { return { value:i, label:i };})}
-                      onChange={handleServiceChange}
-                      value={path.service}/>
-                  </React.Fragment>
-                }
-              </Col>
-              <Col>
-                {path.service != null &&
-                  <React.Fragment>
-                    <b>Member</b>
-                    <Select
-                      options={Object.keys(members[path.fullServiceGroup]).map(i => {
-                        return { value: i, label: members[path.fullServiceGroup][i].sys.hostname }; })}
-                      onChange={handleMemberChange}/>
-                  </React.Fragment>
-                }
-              </Col>
-            </Row>
-          </Container>
-        </div>
+        <Container>
+          <Row className="data-navigator">
+            <Col>
+              <b>Service Group</b>
+              <Select
+                options={serviceGroups.map(i => { return { value:i, label:i };})}
+                onChange={handleServiceGroupChange}
+                value={path.serviceGroup}/>
+            </Col>
+            <Col>
+              {path.serviceGroup !== null &&
+                <React.Fragment>
+                  <b>Service</b>
+                  <Select
+                    options={services[path.serviceGroup.value].map(i => { return { value:i, label:i };})}
+                    onChange={handleServiceChange}
+                    value={path.service}/>
+                </React.Fragment>
+              }
+            </Col>
+            <Col>
+              {path.service !== null &&
+                <React.Fragment>
+                  <b>Member</b>
+                  <Select
+                    options={Object.keys(members[path.fullServiceGroup]).map(i => {
+                      return {
+                        value: i,
+                        label: members[path.fullServiceGroup][i].sys.hostname };
+                      })}
+                    onChange={handleMemberChange}
+                    value={path.member}/>
+                </React.Fragment>
+              }
+            </Col>
+          </Row>
+          <Row>
+            <Col className="data-pane">
+              {path.member !== null && getMemberRenderer(members[path.fullServiceGroup][path.member.value])}
+            </Col>
+          </Row>
+        </Container>
       </div>
     </div>
   );
