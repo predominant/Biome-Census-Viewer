@@ -140,7 +140,6 @@ export default function App(props) {
       </nav>
       <div id="content">
 
-        
         <nav id="topbar">
           <div className="status-indicator"></div>
           <div className="server-details">
@@ -201,6 +200,17 @@ export default function App(props) {
               }
             </Col>
           </Row>
+
+          {path.member !== null &&
+            <Row>
+              <Col className="member-header">
+
+                <span className="on">on</span>
+                {members[path.fullServiceGroup][path.member.value].sys.hostname} ({members[path.fullServiceGroup][path.member.value].sys.ip})
+              </Col>
+            </Row>
+          }
+
           <Row>
             <Col className="data-pane">
               {path.member !== null && getMemberRenderer(members[path.fullServiceGroup][path.member.value])}
