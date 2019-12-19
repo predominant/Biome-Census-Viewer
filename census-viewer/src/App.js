@@ -1,28 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import useInterval from './hooks/useInterval';
+import { useInterval } from './hooks/useInterval';
 
 import { Container, Row, Col, ListGroup, ListGroupItem, Navbar, Nav, FormControl, Form, Button, Tab } from 'react-bootstrap';
 
 import logo from './biome-logo.png';
+import logo2 from './biome-logo-02.svg';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import PollError from './components/PollError';
+import Select from 'react-select';
+import ViewStateButton from './components/ViewStateButton';
+import ViewState, { useViewState } from './hooks/ViewState';
+import SideMenu from './components/SideMenu';
+//import ViewStateEnum from './ViewStateEnum';
 
 export default function App(props) {
   const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
   const [data, setData] = useState(null);
   const [delay, setDelay] = useState(3000);
   const [pollError, setPollError] = useState(null);
-  const [viewState, setViewState] = useState('INSPECTOR');
+  const [viewState, setViewState] = useViewState(ViewState.INSPECTOR);
   const [path, setPath] = useState({
     serviceGroup: null,
     service: null,
+    fullServiceGroup: null,
     member: null
   });
 
   const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
   const [services, setServices] = useState({}); // All services, grouped by service group.
   const [members, setMembers] = useState({});
+
+  console.log(serviceGroups);
+  console.log(services)
+  console.log(members);
+  console.log(path);
 
   function handlePollResponse(result) {
     setPollError(false);
@@ -36,7 +48,7 @@ export default function App(props) {
     // Parse out the service members
     let newMembers = {};
     Object.keys(result.census_groups).map(i => {
-        newMembers[i] = result.census_groups[i].population;
+      newMembers[i] = result.census_groups[i].population;
     });
     setMembers(newMembers);
 
@@ -77,86 +89,107 @@ export default function App(props) {
     await pollEndpoint();
   }, delay);
 
+  function handleViewStateChange(state) {
+    setViewState(state);
+  }
+
+  function handleServiceGroupChange(selectedOption) {
+    setPath({
+      serviceGroup: selectedOption,
+      service: null,
+      fullServiceGroup: null,
+      member: null,
+    });
+  }
+
+  function handleServiceChange(selectedOption) {
+    setPath({
+      ...path,
+      fullServiceGroup: `${selectedOption.value}.${path.serviceGroup.value}`,
+      service: selectedOption,
+      member: null,
+    });
+  }
+
+  function handleMemberChange(selectedOption) {
+    setPath({
+      ...path,
+      member: selectedOption.value,
+    });
+  }
+
   return (
-    <div>
-    <Navbar className="justify-content-between" bg="dark" variant="dark">
-      <Navbar.Brand href="#home">
-        <img src={logo} className="App-logo" alt="logo" className="align-top" height="30" width="30"/>
-        &nbsp;&nbsp;Biome Viewer
-      </Navbar.Brand>
-      <Navbar.Toggle aria-controls="basic-navbar-nav"/>
-      <Navbar.Collapse id="basic-navbar-nav">
-        <Nav className="mr-auto">
-          <Nav.Link href="#home">Census</Nav.Link>
-        </Nav>
-      </Navbar.Collapse>
-      <Form inline>
-        <FormControl id="endpoint" type="text" defaultValue={endpoint} className="mr-sm-2"/>
-        <Button onClick={() => setEndpoint(document.getElementById('endpoint').value)}>Update</Button>
-      </Form>
-    </Navbar>
-    <Container>
-      <Row>
-        <Col>
-          <p>{data ? 'Data' : 'Attempting to load data'}</p>
-          {pollError ? <PollError err={pollError} /> : ''}
-        </Col>
-      </Row>
-    </Container>
-    <Tab.Container fluid={true} className="service-navigator">
-      <Row>
-        <Col>
-          <h4>Service Groups</h4>
-          <ListGroup>
-            {serviceGroups.map((name, i) => (
-              <ListGroup.Item
-                key={i}
-                action
-                href={`#serviceGroup-${name}`}
-                // onClick={() => {setActiveServiceGroup(name)}}
-                >
-                {name}
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
-        </Col>
-        <Col>
-          <h4>Services</h4>
-          <Tab.Content>
-            {serviceGroups.map((name, i) => (
-              <Tab.Pane key={i} eventKey={`#serviceGroup-${name}`}>
-                <ListGroup>
-                  {services[name].map((srvName, j) => (
-                    <ListGroup.Item
-                      key={j}
-                      action
-                      href={`#serviceGroupMember-${srvName}.${name}`}>
-                      {srvName}
-                    </ListGroup.Item>
-                  ))}
-                </ListGroup>
-              </Tab.Pane>
-            ))}
-          </Tab.Content>
-        </Col>
-        <Col>
-          <h4>Members</h4>
-          <Tab.Content>
-            {Object.keys(members).map((srvGroupName, k) => (
-              <Tab.Pane key={k} eventKey={`#serviceGroupMember-${srvGroupName}`}>
-                <ListGroup>
-                  {srvGroupName}
-                  {/* {
-                    members[srvGroupName].map((memberName, l) => (
-                    <ListGroup.Item></ListGroup.Item>
-                  ))} */}
-                </ListGroup>
-              </Tab.Pane>
-            ))}
-          </Tab.Content>
-        </Col>
-      </Row>
-    </Tab.Container>
+    <div className="wrapper">
+      <nav id="sidebar">
+        <div className="logo">
+          <img src={logo2} alt="Biome" />
+        </div>
+        <SideMenu />
+      </nav>
+      <div id="content">
+
+        
+        <nav id="topbar">
+          <div className="status-indicator"></div>
+          <div className="server-details">
+            <div className="server-name">Localhost</div>
+            <div className="server-address">http://localhost:5555/census</div>
+          </div>
+          <div className="view-toggle">
+            <div className="btn-group btn-group-lmdg" role="group">
+              <ViewStateButton
+                type={ViewState.INSPECTOR}
+                currentstate={viewState}
+                onClick={() => handleViewStateChange(ViewState.INSPECTOR)}>
+                  Inspector
+              </ViewStateButton>
+              <ViewStateButton
+                type={ViewState.DATA}
+                currentstate={viewState}
+                onClick={() => handleViewStateChange(ViewState.DATA)}>
+                  Raw Data
+              </ViewStateButton>
+            </div>
+          </div>
+        </nav>
+
+
+        <div className="data-navigator">
+          <Container fluid>
+            <Row>
+              <Col>
+                <b>Service Group</b>
+                <Select
+                  options={serviceGroups.map(i => { return { value:i, label:i };})}
+                  onChange={handleServiceGroupChange}
+                  value={path.serviceGroup}/>
+              </Col>
+              <Col>
+                {path.serviceGroup != null &&
+                  <React.Fragment>
+                    <b>Service</b>
+                    <Select
+                      options={services[path.serviceGroup.value].map(i => { return { value:i, label:i };})}
+                      onChange={handleServiceChange}
+                      value={path.service}/>
+                  </React.Fragment>
+                }
+              </Col>
+              <Col>
+                {path.service != null &&
+                  <React.Fragment>
+                    <b>Member</b>
+                    <Select
+                      options={Object.keys(members[path.fullServiceGroup]).map(i => {
+                        return { value: i, label: members[path.fullServiceGroup][i].sys.hostname }; })}
+                      onChange={handleMemberChange}/>
+                  </React.Fragment>
+                }
+              </Col>
+            </Row>
+          </Container>
+        </div>
+      </div>
     </div>
   );
 }

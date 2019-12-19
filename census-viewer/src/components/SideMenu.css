@@ -1,0 +1,24 @@
+.side-menu {
+  margin: 20px;
+  color: #ccc;
+}
+
+.side-heading {
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.side-menu .list-group .list-group-item {
+  padding: 0;
+  list-style-type: none;
+  line-height: 24px;
+  background-color: transparent;
+  border: none;
+  padding-bottom: 8px;
+  color: #ccc;
+}
+.side-menu .list-group .list-group-item i {
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+}
