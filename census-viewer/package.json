@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "bootstrap": "^4.3.1",
+    "bootstrap": "^4.4.1",
     "react": "^16.10.2",
-    "react-bootstrap": "^1.0.0-beta.14",
+    "react-bootstrap": "^1.0.0-beta.16",
     "react-dom": "^16.10.2",
-    "react-polling": "^1.0.5",
-    "react-scripts": "0.9.x"
+    "react-json-pretty": "^2.2.0",
+    "react-scripts": "0.9.x",
+    "react-select": "^3.0.8"
   },
   "devDependencies": {},
   "scripts": {

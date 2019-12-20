@@ -1,197 +1,222 @@
-import React, { Component } from 'react';
-import { Container, Col, Row } from 'react-bootstrap';
-import SelectList from './SelectList';
-import MemberDetail from './MemberDetail';
-import ReactPolling from 'react-polling';
+import React, { useState, useEffect } from 'react';
+import { useInterval } from './hooks/useInterval';
+
+import { Container, Row, Col, ListGroup, ListGroupItem, Navbar, Nav, FormControl, Form, Button, Tab } from 'react-bootstrap';
+
 import logo from './biome-logo.png';
+import logo2 from './biome-logo-02.svg';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import PollError from './components/PollError';
+import Select from 'react-select';
+import ViewStateButton from './components/ViewStateButton';
+import ViewState, { useViewState } from './hooks/ViewState';
+import SideMenu from './components/SideMenu';
+import MemberInspector from './components/MemberInspector';
+import MemberData from './components/MemberData';
+import MemberHeader from './components/MemberHeader';
+//import ViewStateEnum from './ViewStateEnum';
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.pollSuccess = this.pollSuccess.bind(this);
-    this.pollFailure = this.pollFailure.bind(this);
-    this.setServiceGroup = this.setServiceGroup.bind(this);
-    this.setService = this.setService.bind(this);
-    this.setFullServiceGroup = this.setFullServiceGroup.bind(this);
-    this.setMember = this.setMember.bind(this);
+export default function App(props) {
+  const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
+  const [data, setData] = useState(null);
+  const [delay, setDelay] = useState(3000);
+  const [pollError, setPollError] = useState(null);
+  const [viewState, setViewState] = useViewState(ViewState.INSPECTOR);
+  const [path, setPath] = useState({
+    serviceGroup: null,
+    service: null,
+    fullServiceGroup: null,
+    member: null
+  });
 
-    this.serviceGroupsList = React.createRef();
-    this.servicesList = React.createRef();
-    this.membersList = React.createRef();
-    this.memberDetail = React.createRef();
+  const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
+  const [services, setServices] = useState({}); // All services, grouped by service group.
+  const [members, setMembers] = useState({});
+  const [member, setMember] = useState(null);
 
-    this.state = {
-      lastPoll: null,
+  console.log(serviceGroups);
+  console.log(services)
+  console.log(members);
+  console.log(path);
 
-      serviceGroups: [],
-      services: {},
-      members: {},
+  function handlePollResponse(result) {
+    setPollError(false);
+    setData(result);
 
-      selectedServiceGroup: null,
-      selectedService: null,
-      selectedFullServiceGroup: null,
-      selectedMember: null,
-      selectedMemberHostname: null,
-      selectedMemberData: null,
+    if (result === null || !result.hasOwnProperty('census_groups')) {
+      setPollError(true);
+      return;
+    }
+
+    // Parse out the service members
+    let newMembers = {};
+    Object.keys(result.census_groups).map(i => {
+      newMembers[i] = result.census_groups[i].population;
+    });
+    setMembers(newMembers);
+
+    // Parse out the services
+    let newServices = {};
+    Object.keys(result.census_groups).map(i => {
+      let [srv, grp] = i.split('.');
+      if (!newServices.hasOwnProperty(grp))
+        newServices[grp] = new Set();
+      newServices[grp].add(srv);
+    });
+    // Convert the sets back to arrays.
+    for (const key of Object.keys(newServices))
+      newServices[key] = [...newServices[key]].sort();
+    setServices(newServices);
+    //console.table(newServices);
+
+    // Parse out the service groups
+    let newServiceGroups = [...new Set(Object.keys(result.census_groups).map(i => i.split('.')[1]))].sort();
+    if (JSON.stringify(newServiceGroups) !== JSON.stringify(serviceGroups)) {
+      setServiceGroups(newServiceGroups);
+      //console.table(newServiceGroups);
     }
   }
 
-  pollSuccess(event) {
-    console.log("Polling completed")
-
-    this.setState({lastPoll: event});
-
-    // Groups
-    const groups = new Set();
-    const services = {};
-    const members = {};
-    for (var serviceGroup in event.census_groups) {
-      for (var member in event.census_groups[serviceGroup].population) {
-        const groupName = event.census_groups[serviceGroup].population[member].group;
-        groups.add(groupName);
-        
-        if (!services.hasOwnProperty(groupName))
-          services[groupName] = new Set();
-        services[groupName].add(event.census_groups[serviceGroup].population[member].service);
-        
-        if (!members.hasOwnProperty(serviceGroup))
-          members[serviceGroup] = {};
-        members[serviceGroup][event.census_groups[serviceGroup].population[member].member_id] = event.census_groups[serviceGroup].population[member];
-      }
-    }
-    // Update Service Groups
-    const groupsArray = Array.from(groups);
-    this.setState({serviceGroups: groupsArray});
-    this.serviceGroupsList.current.setItems(groupsArray);
-
-    // Update Services
-    const servicesObject = {};
-    for (var group in services) {
-      servicesObject[group] = Array.from(services[group]);
-    }
-    this.setState({services: servicesObject});
-
-    //console.debug(members);
-    this.setState({members: members});
+  function handlePollError(err) {
+    setPollError(err);
   }
 
-  pollFailure(event) {
-    console.error("Failed to poll URI:");
-    console.debug(event);
+  function pollEndpoint() {
+    fetch(endpoint)
+      .then(result => result.json())
+      .then(result => handlePollResponse(result))
+      .catch(err => handlePollError(err));
   }
 
-  setServiceGroup(name) {
-    console.log("Set Service Group: " + name)
-    this.setState({selectedServiceGroup: name});
-    this.servicesList.current.setItems(this.state.services[name]);
-    this.membersList.current.setItems([]);
-    this.selectedMember = null;
-    this.selectedMemberHostname = null;
-    this.selectedMemberData = null;
+  useInterval(async () => {
+    await pollEndpoint();
+  }, delay);
+
+  function handleViewStateChange(state) {
+    setViewState(state);
   }
 
-  setService(name) {
-    console.log("Set Service: " + name)
-    const serviceGroup = name + "." + this.state.selectedServiceGroup
-    console.debug(serviceGroup)
-    this.membersList.current.setItems(this.state.members[serviceGroup]);
-
-    this.setFullServiceGroup(name + "." + this.state.selectedServiceGroup);
-    this.selectedMember = null;
-    this.selectedMemberHostname = null;
-    this.selectedMemberData = null;
-    this.setState({selectedService: name});
+  function handleServiceGroupChange(selectedOption) {
+    setPath({
+      serviceGroup: selectedOption,
+      service: null,
+      fullServiceGroup: null,
+      member: null,
+    });
+    setMember(null);
   }
 
-  setFullServiceGroup(name) {
-    this.setState({selectedFullServiceGroup: name});
+  function handleServiceChange(selectedOption) {
+    setPath({
+      ...path,
+      fullServiceGroup: `${selectedOption.value}.${path.serviceGroup.value}`,
+      service: selectedOption,
+      member: null,
+    });
+    setMember(null);
   }
 
-  setMember(id) {
-    console.log("Set Member: " + id)
-    console.debug(this.state.selectedFullServiceGroup);
-    console.debug(this.state.lastPoll.census_groups);
-    const serviceGroupData = this.state.lastPoll.census_groups[this.state.selectedFullServiceGroup];
-    var data = {};
-    for (var member in serviceGroupData.population) {
-      console.log("Check " + member + " === " + id);
-      if (member === id)
-        data = serviceGroupData.population[member];
-    }
-    console.debug(data);
-
-    this.memberDetail.current.setData(data);
-    this.setState({
-      selectedMember: id,
-      selectedMemberHostname: data.sys.hostname,
-      selectedMemberData: data});
+  function handleMemberChange(selectedOption) {
+    setPath({
+      ...path,
+      member: selectedOption,
+    });
+    setMember(members[path.fullServiceGroup][selectedOption.value]);
   }
 
-  render() {
-    return (
-      <div className="App">
-        <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h2>Biome Census Viewer</h2>
-          <div className="App-poller">
-            <ReactPolling
-              url="http://localhost:5555/census"
-              interval={3000}
-              retryCount={3}
-              onSuccess={this.pollSuccess}
-              onFailure={this.pollFailure}
-              method="GET"
-              render={({ startPolling, stopPolling, isPolling }) => {
-                if(isPolling) {
-                  return (
-                    <div className="polling">&nbsp;</div>
-                  );
-                } else {
-                  return (
-                    <div className="not-polling">&nbsp;</div>
-                  );
-                }
-              }}
-              />
+  function getMemberRenderer(member) {
+    const debug = viewState & ViewState.DEBUG !== 0;
+
+    if (viewState & ViewState.DATA)
+      return <MemberData member={member} debug={debug}/>;
+
+    // Default return is the inspector;
+    return <MemberInspector member={member} debug={debug}/>;
+  }
+
+  return (
+    <div className="wrapper">
+      <nav id="sidebar">
+        <div className="logo">
+          <img src={logo2} alt="Biome" />
+        </div>
+        <SideMenu />
+      </nav>
+
+      <div id="content">
+        <nav id="topbar">
+          <div className="status-indicator"></div>
+          <div className="server-details">
+            <div className="server-name">Localhost</div>
+            <div className="server-address">http://localhost:5555/census</div>
           </div>
-        </div>
-        <div className="App-sidebar">
-          &nbsp;
-        </div>
-        <div className="App-main">
-          <Container fluid="true">
-            <Row>
-              <Col>
-                <SelectList
-                  heading="Service Groups"
-                  parentCallback={this.setServiceGroup}
-                  ref={this.serviceGroupsList} />
-              </Col>
-              <Col>
-                <SelectList
-                  heading="Services"
-                  parentCallback={this.setService}
-                  ref={this.servicesList} />
-              </Col>
-              <Col>
-                <SelectList
-                  heading="Members"
-                  parentCallback={this.setMember}
-                  ref={this.membersList} />
-              </Col>
-            </Row>
-            <Row>
-              <Col>
-                <MemberDetail ref={this.memberDetail} />
-              </Col>
-            </Row>
-          </Container>
-        </div>
-      </div>
-    );
-  }
-}
+          <div className="view-toggle">
+            <div className="btn-group btn-group-lmdg" role="group">
+              <ViewStateButton
+                type={ViewState.INSPECTOR}
+                currentstate={viewState}
+                onClick={() => handleViewStateChange(ViewState.INSPECTOR)}>
+                  Inspector
+              </ViewStateButton>
+              <ViewStateButton
+                type={ViewState.DATA}
+                currentstate={viewState}
+                onClick={() => handleViewStateChange(ViewState.DATA)}>
+                  Raw Data
+              </ViewStateButton>
+            </div>
+          </div>
+        </nav>
 
-export default App;
+        <Container>
+          <Row className="data-navigator">
+            <Col>
+              <b>Service Group</b>
+              <Select
+                options={serviceGroups.map(i => { return { value:i, label:i };})}
+                onChange={handleServiceGroupChange}
+                value={path.serviceGroup}/>
+            </Col>
+            <Col>
+              {path.serviceGroup !== null &&
+                <React.Fragment>
+                  <b>Service</b>
+                  <Select
+                    options={services[path.serviceGroup.value].map(i => { return { value:i, label:i };})}
+                    onChange={handleServiceChange}
+                    value={path.service}/>
+                </React.Fragment>
+              }
+            </Col>
+            <Col>
+              {path.service !== null &&
+                <React.Fragment>
+                  <b>Member</b>
+                  <Select
+                    options={Object.keys(members[path.fullServiceGroup]).map(i => {
+                      return {
+                        value: i,
+                        label: members[path.fullServiceGroup][i].sys.hostname };
+                      })}
+                    onChange={handleMemberChange}
+                    value={path.member}/>
+                </React.Fragment>
+              }
+            </Col>
+          </Row>
+
+          {member !== null &&
+            <MemberHeader member={member} />
+          }
+
+          <Row>
+            <Col className="data-pane">
+              {path.member !== null && getMemberRenderer(members[path.fullServiceGroup][path.member.value])}
+            </Col>
+          </Row>
+        </Container>
+      </div>
+    </div>
+  );
+}

@@ -1,63 +1,132 @@
-.App {
-  padding: 0;
-  margin: 0;
+* {
   font-family: 'Roboto', sans-serif;
 }
 
-.App-logo {
-  height: 50px;
-  /* display: inline-block; */
-  float: left;
+.wrapper {
+  display: flex;
+  width: 100vw;
+  align-items: stretch;
 }
 
-.App-header {
+#sidebar {
+  background: rgb(51,51,51);
+  background: linear-gradient(180deg, rgba(51,51,51,1) 0%, rgba(102,102,102,1) 100%);
+  min-height: 100vh;
+  width: 250px;
+  min-width: 250px;
+  transition: all 0.3s;
+  padding: 0;
+}
+#sidebar.hidden {
+  margin-left: -280px;
+}
+#sidebar .logo {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  height: 100px;
   background-color: #000;
-  height: 50px;
 }
-.App-header h2 {
-  text-align: left;
-  color: #fff;
-  line-height: 52px;
-  height: 50px;
-  padding-left: 15px;
-  display: inline-block;
-  font-weight: normal;
+#sidebar .logo img {
+  height: 30px;
+  margin-top: 33px;
 }
 
-.App-sidebar {
-  width: 50px;
-  top: 50px;
-  bottom: 0;
-  position: absolute;
-  background-color: #247841;
-}
-
-.App-main {
-  margin-left: 50px;
+#topbar {
+  display: flex;
+  align-items: stretch;
+  height: 100px;
+  background-color: #ccc;
   padding: 25px;
 }
 
-.App-poller {
-  position: absolute;
-  top: 0;
-  right: 0;
+.status-indicator {
+  border-radius: 24px;
+  width: 48px;
+  height: 48px;
+  background-color: #786624;
+  margin-right: 25px;
+  display: inline-block;
+  text-align: center;
+  font-weight: bold;
+  line-height: 48px;
 }
-.App-poller div {
-  display:block;
-  height: 50px;
-  width: 50px;
+.status-indicator.small {
+  border-radius: 12px;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
 }
-.App-poller .polling {
-  background-color: orange;
+.status-indicator.good {
+  background-color: #247841;
 }
-.App-poller .not-polling {
-  background-color: green;
+.status-indicator.bad {
+  background-color: #782424;
+}
+.status-indicator.add {
+  background-color: #000;
 }
 
-/*
- * Core app stuff
- */
+#topbar .server-name {
+  width: 100%;
+  height: 50%;
+  font-weight: bold;
+}
+#topbar .server-address {
+  height: 50%;
+}
+#topbar .view-toggle {
+  width: 250px;
+  text-align: right;
+  margin-left: auto;
+}
 
-.census-service-groups {
-  background-color: red;
+.data-navigator {
+  height: 100px;
+  border-bottom: solid #ccc 1px;
+  padding-top: 15px
+}
+
+.data-pane {
+  margin-top: 20px;
+}
+
+.data-pane pre {
+  font-family: monospace;
+  font-size: 12pt;
+}
+
+.member-header {
+  background-color: #eee;
+  height: 60px;
+  line-height: 60px;
+}
+.member-header .service-group,
+.member-header .hostname {
+  font-weight: bold;
+}
+
+#content {
+  width: 100%;
+}
+
+.inspector {
+  color: #666;
+}
+.inspector .header {
+  margin-top: 20px;
+}
+.inspector .header {
+  font-weight: bold;
+  border-bottom: solid 1px #ccc;
+}
+.inspector .data-header {
+  text-align: right;
+}
+.inspector .data {
+  font-family: monospace;
+  font-size: 11pt;
+}
+.inspector .data.null {
+  color: #ccc;
 }
