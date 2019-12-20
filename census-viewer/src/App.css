@@ -9,9 +9,11 @@
 }
 
 #sidebar {
-  background-color: #333;
+  background: rgb(51,51,51);
+  background: linear-gradient(180deg, rgba(51,51,51,1) 0%, rgba(102,102,102,1) 100%);
   min-height: 100vh;
-  width: 350px;
+  width: 250px;
+  min-width: 250px;
   transition: all 0.3s;
   padding: 0;
 }
@@ -95,15 +97,36 @@
 }
 
 .member-header {
-  background-color: #ccc;
+  background-color: #eee;
   height: 60px;
   line-height: 60px;
+}
+.member-header .service-group,
+.member-header .hostname {
+  font-weight: bold;
 }
 
 #content {
   width: 100%;
 }
 
-/* div {
-  outline: dashed green 1px;
-} */
+.inspector {
+  color: #666;
+}
+.inspector .header {
+  margin-top: 20px;
+}
+.inspector .header {
+  font-weight: bold;
+  border-bottom: solid 1px #ccc;
+}
+.inspector .data-header {
+  text-align: right;
+}
+.inspector .data {
+  font-family: monospace;
+  font-size: 11pt;
+}
+.inspector .data.null {
+  color: #ccc;
+}

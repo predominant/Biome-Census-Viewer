@@ -14,6 +14,7 @@ import ViewState, { useViewState } from './hooks/ViewState';
 import SideMenu from './components/SideMenu';
 import MemberInspector from './components/MemberInspector';
 import MemberData from './components/MemberData';
+import MemberHeader from './components/MemberHeader';
 //import ViewStateEnum from './ViewStateEnum';
 
 export default function App(props) {
@@ -32,6 +33,7 @@ export default function App(props) {
   const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
   const [services, setServices] = useState({}); // All services, grouped by service group.
   const [members, setMembers] = useState({});
+  const [member, setMember] = useState(null);
 
   console.log(serviceGroups);
   console.log(services)
@@ -102,6 +104,7 @@ export default function App(props) {
       fullServiceGroup: null,
       member: null,
     });
+    setMember(null);
   }
 
   function handleServiceChange(selectedOption) {
@@ -111,6 +114,7 @@ export default function App(props) {
       service: selectedOption,
       member: null,
     });
+    setMember(null);
   }
 
   function handleMemberChange(selectedOption) {
@@ -118,6 +122,7 @@ export default function App(props) {
       ...path,
       member: selectedOption,
     });
+    setMember(members[path.fullServiceGroup][selectedOption.value]);
   }
 
   function getMemberRenderer(member) {
@@ -138,8 +143,8 @@ export default function App(props) {
         </div>
         <SideMenu />
       </nav>
-      <div id="content">
 
+      <div id="content">
         <nav id="topbar">
           <div className="status-indicator"></div>
           <div className="server-details">
@@ -201,14 +206,8 @@ export default function App(props) {
             </Col>
           </Row>
 
-          {path.member !== null &&
-            <Row>
-              <Col className="member-header">
-
-                <span className="on">on</span>
-                {members[path.fullServiceGroup][path.member.value].sys.hostname} ({members[path.fullServiceGroup][path.member.value].sys.ip})
-              </Col>
-            </Row>
+          {member !== null &&
+            <MemberHeader member={member} />
           }
 
           <Row>
