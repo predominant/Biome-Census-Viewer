@@ -5,9 +5,6 @@ import InspectorValue from './InspectorValue';
 export default function InspectorService(props) {
   const { service } = props;
 
-  const applicationClass = service.application === null ? 'null' : '';
-  const environmentClass = service.environment === null ? 'null' : '';
-
   return (
     <Container className="inspector">
       <Row className="header">

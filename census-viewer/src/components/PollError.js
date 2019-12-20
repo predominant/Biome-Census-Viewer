@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Alert } from "react-bootstrap";
 
 export default function PollError(props) {
@@ -11,4 +11,4 @@ export default function PollError(props) {
       <p>{err}</p>
     </Alert>
   );
-}
+};

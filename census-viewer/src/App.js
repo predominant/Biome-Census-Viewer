@@ -35,10 +35,10 @@ export default function App(props) {
   const [members, setMembers] = useState({});
   const [member, setMember] = useState(null);
 
-  console.log(serviceGroups);
-  console.log(services)
-  console.log(members);
-  console.log(path);
+  // console.log(serviceGroups);
+  // console.log(services)
+  // console.log(members);
+  // console.log(path);
 
   function handlePollResponse(result) {
     setPollError(false);
