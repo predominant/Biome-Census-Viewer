@@ -177,6 +177,14 @@ export default function App(props) {
     setMember(null);
   }
 
+  function handleServerDelete(server) {
+    console.log(`Deleting a server: ${server.address}`);
+    setServers(servers.filter(s => s.name != server.name && s.address != server.address));
+
+    if (currentServer.name == server.name && currentServer.address == server.address)
+      setCurrentServer(emptyServer);
+  }
+
   return (
     <div className="wrapper">
       <nav id="sidebar">
@@ -186,7 +194,8 @@ export default function App(props) {
         <SideMenu
           servers={servers}
           handleServerAdd={handleServerAdd}
-          handleServerChange={handleServerChange} />
+          handleServerChange={handleServerChange}
+          handleServerDelete={handleServerDelete}/>
       </nav>
 
       <div id="content">

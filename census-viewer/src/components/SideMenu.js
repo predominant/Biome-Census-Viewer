@@ -4,13 +4,17 @@ import { ListGroup, Modal, Button } from 'react-bootstrap';
 import ServerSelector from './ServerSelector';
 
 export default function SideMenu(props) {
-  const { servers, handleServerAdd, handleServerChange } = props;
+  const { servers, handleServerAdd, handleServerChange, handleServerDelete } = props;
   const [showAddModal, setShowAddModal] = useState(false);
   const [serverName, setServerName] = useState('');
   const [serverAddress, setServerAddress] = useState('');
 
   const serverList = servers.map((s, key) => 
-    <ServerSelector server={s} key={key} handleServerChange={handleServerChange} />
+    <ServerSelector
+      server={s}
+      key={key}
+      handleServerChange={handleServerChange}
+      handleServerDelete={handleServerDelete}/>
   );
 
   function serverAdd() {
