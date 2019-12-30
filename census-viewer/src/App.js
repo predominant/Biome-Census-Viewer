@@ -17,21 +17,31 @@ import SideMenu from './components/SideMenu';
 import MemberInspector from './components/MemberInspector';
 import MemberData from './components/MemberData';
 import MemberHeader from './components/MemberHeader';
+import ServerHeader from './components/ServerHeader';
 //import ViewStateEnum from './ViewStateEnum';
 
 export default function App(props) {
-  const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
+  const emptyPath = {
+    serviceGroup: null,
+    service: null,
+    fullServiceGroup: null,
+    member: null
+  };
+
+  const emptyServer = {
+    name: '',
+    address: '',
+    status: 'UNKNOWN',
+  };
+
+  // const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
+  const [currentServer, setCurrentServer] = useState(emptyServer);
   const [servers, setServers] = useState(store.get('servers', []));
   const [data, setData] = useState(null);
   const [delay, setDelay] = useState(3000);
   const [pollError, setPollError] = useState(null);
   const [viewState, setViewState] = useViewState(ViewState.INSPECTOR);
-  const [path, setPath] = useState({
-    serviceGroup: null,
-    service: null,
-    fullServiceGroup: null,
-    member: null
-  });
+  const [path, setPath] = useState(emptyPath);
 
   const [serviceGroups, setServiceGroups] = useState([]); // All service groups.
   const [services, setServices] = useState({}); // All services, grouped by service group.
@@ -46,9 +56,11 @@ export default function App(props) {
   function handlePollResponse(result) {
     setPollError(false);
     setData(result);
+    setCurrentServer({...currentServer, status: 'OK'});
 
     if (result === null || !result.hasOwnProperty('census_groups')) {
       setPollError(true);
+      setCurrentServer({...currentServer, status: 'ERROR'});
       return;
     }
 
@@ -83,10 +95,14 @@ export default function App(props) {
 
   function handlePollError(err) {
     setPollError(err);
+    setCurrentServer({...currentServer, status: 'ERROR'});
   }
 
   function pollEndpoint() {
-    fetch(endpoint)
+    if (currentServer === null)
+      return;
+    
+    fetch(currentServer.address)
       .then(result => result.json())
       .then(result => handlePollResponse(result))
       .catch(err => handlePollError(err));
@@ -139,21 +155,26 @@ export default function App(props) {
     return <MemberInspector member={member} debug={debug}/>;
   }
 
-  // Update local storage when the server change.
+  // Update local storage when the server changes.
   useEffect(() => {
-    store.set('server', servers);
+    store.set('servers', servers);
   }, [servers]);
 
   function handleServerAdd(name, address) {
     setServers([...servers, {
       name: name,
       address: address,
+      status: 'UNKNOWN',
     }]);
   }
 
   function handleServerChange(server) {
-    console.log(`Setting server endpoint: ${server.endpoint}`);
-    setEndpoint(server.address);
+    console.log(`Setting server endpoint: ${server.address}`);
+    // setEndpoint(server.address);
+    setCurrentServer(server);
+    setPath(emptyPath);
+    setServiceGroups([]);
+    setMember(null);
   }
 
   return (
@@ -170,11 +191,7 @@ export default function App(props) {
 
       <div id="content">
         <nav id="topbar">
-          <div className="status-indicator"></div>
-          <div className="server-details">
-            <div className="server-name">Localhost</div>
-            <div className="server-address">http://localhost:5555/census</div>
-          </div>
+          <ServerHeader server={currentServer} />
           <div className="view-toggle">
             <div className="btn-group btn-group-lmdg" role="group">
               <ViewStateButton
