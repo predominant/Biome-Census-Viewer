@@ -13,3 +13,9 @@ Possibly:
 
 * Wrap as an electron app
 
+## TODO
+
+* `currentServer` is a separate object. This should be changed to be an index in the `servers` list/array.
+* Change the status value to be stored in the `servers` list.
+* Use status to update sidebar indicator based on latest poll status.
+

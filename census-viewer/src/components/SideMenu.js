@@ -57,7 +57,7 @@ export default function SideMenu(props) {
           </div>
           <div className="form-group">
             <label htmlFor="serverAddressInput">Address</label>
-            <input type="text" className="form-control" id="serverAddressInput" value={serverAddress} onChange={handleServerAddressChange}/>
+            <input type="text" className="form-control" id="serverAddressInput" value={serverAddress} placeholder="http://localhost:5555/census" onChange={handleServerAddressChange}/>
           </div>
         </Modal.Body>
         <Modal.Footer>
