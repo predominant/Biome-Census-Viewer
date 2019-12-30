@@ -9,7 +9,8 @@
     "react-dom": "^16.10.2",
     "react-json-pretty": "^2.2.0",
     "react-scripts": "0.9.x",
-    "react-select": "^3.0.8"
+    "react-select": "^3.0.8",
+    "store": "^2.0.12"
   },
   "devDependencies": {},
   "scripts": {
