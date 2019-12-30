@@ -1,7 +1,7 @@
 pkg_name=census-viewer
-pkg_origin=grahamweldon
+pkg_origin=predominant
 pkg_version=0.1.0
-pkg_maintainer="Graham Weldon <graham@grahamweldon.com"
+pkg_maintainer="Graham Weldon <graham@grahamweldon.com>"
 pkg_license=("GPL-3.0-or-later")
 pkg_description="A census viewer for Biome and Habitat"
 pkg_upstream_url="https://grahamweldon.com"

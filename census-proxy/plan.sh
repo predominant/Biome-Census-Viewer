@@ -1,5 +1,5 @@
 pkg_name=census-proxy
-pkg_origin=grahamweldon
+pkg_origin=predominant
 pkg_version=0.1.0
 pkg_maintainer="Graham Weldon <graham@grahamweldon.com>"
 pkg_license=("GPL-3.0-or-later")
