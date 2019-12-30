@@ -3,6 +3,8 @@ import { useInterval } from './hooks/useInterval';
 
 import { Container, Row, Col, ListGroup, ListGroupItem, Navbar, Nav, FormControl, Form, Button, Tab } from 'react-bootstrap';
 
+import store from 'store';
+
 import logo from './biome-logo.png';
 import logo2 from './biome-logo-02.svg';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -19,6 +21,7 @@ import MemberHeader from './components/MemberHeader';
 
 export default function App(props) {
   const [endpoint, setEndpoint] = useState('http://localhost:5555/census');
+  const [servers, setServers] = useState(store.get('servers', []));
   const [data, setData] = useState(null);
   const [delay, setDelay] = useState(3000);
   const [pollError, setPollError] = useState(null);
@@ -89,6 +92,7 @@ export default function App(props) {
       .catch(err => handlePollError(err));
   }
 
+  // Poll the endpoint at set intervals.
   useInterval(async () => {
     await pollEndpoint();
   }, delay);
@@ -135,13 +139,33 @@ export default function App(props) {
     return <MemberInspector member={member} debug={debug}/>;
   }
 
+  // Update local storage when the server change.
+  useEffect(() => {
+    store.set('server', servers);
+  }, [servers]);
+
+  function handleServerAdd(name, address) {
+    setServers([...servers, {
+      name: name,
+      address: address,
+    }]);
+  }
+
+  function handleServerChange(server) {
+    console.log(`Setting server endpoint: ${server.endpoint}`);
+    setEndpoint(server.address);
+  }
+
   return (
     <div className="wrapper">
       <nav id="sidebar">
         <div className="logo">
           <img src={logo2} alt="Biome" />
         </div>
-        <SideMenu />
+        <SideMenu
+          servers={servers}
+          handleServerAdd={handleServerAdd}
+          handleServerChange={handleServerChange} />
       </nav>
 
       <div id="content">
