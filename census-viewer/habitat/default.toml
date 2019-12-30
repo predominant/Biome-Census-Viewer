@@ -3,6 +3,3 @@ port = 80
 
 [events]
 worker_connections = 512
-
-[app]
-api = "http://127.0.0.1:5555"
